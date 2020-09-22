@@ -14,3 +14,5 @@ The second thing we did was to investigate the distribution across the United St
 From our plots it is clear that the states that have the most money spent and coverage are the same ones we found in the previous graphs. 
 Namely California, New York and Texas are the first three states ranked in terms of money spent on helath insurance and ranked in terms of coverage in 2014.
 Finally we plotted the graphs of percentiles spending and coverage across the United states. Accordingly to the previous graphs the California Texas and New York show up in the highest percentiles.
+
+<img src="images/hc.jpg" width="300">
