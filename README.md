@@ -1,5 +1,5 @@
 # Exploratory Study of Healthcare Data
-The code for this project is written in R and can be found in the code.rmd file.
+The code for this project is written in R and can be found in the code folder.
 
 ### Project Description and Findings
 In this project we used the data from the Henry J Kaiser Family Foundation (KFF). 
