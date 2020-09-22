@@ -1,0 +1,186 @@
+---
+title: "Healthcare"
+author: "Elisa Negrini and Adriana Morales"
+output:
+  html_document:
+    df_print: paged
+---
+
+# Introduction
+In this project we used the data from the Henry J Kaiser Family Foundation (KFF). In particular we used Health Insurance Coverage of the Total Population for the years 2013-2016 and Health Care Expenditures by State of Residence (in millions) for the years 1991-2014.
+
+In this project we studied the data for the years 2013 and 2014. We first looked at which are the states that spent the most money in 2013 on health insurances and plotted the results in a bar plot. California is the state that spent the most on health insurances that year, followed by New Yoork and Texas. We then produced a similar graph for the year 2014. We discovered that the ranking of the states in terms of money spent on health insurances is the same as in 2013.
+Finally, we produced a comparison bar plot for the years 2013 and 2014 and we compared the amount of money spent by the different states on health insurances. It appears that every state we considered increased the amount of money spent on health insurance in 2014.
+
+The second thing we did was to investigate the distribution across the United States of the money spent on health insurances and of the coverage in 2014. From our plots it is clear that the states that have the most money spent and coverage are the same ones we found in the previous graphs. Namely California, New York and Texas are the first three states ranked in terms of money spent on helath insurance and ranked in terms of coverage in 2014. Finally we plotted the graphs of percentiles spending and coverage across the United states. Accordingly to the previous graphs the California Texas and New York show up in the highest percentiles.
+
+
+```{r setup, include=FALSE}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+library(readr)
+library(maps)
+library(maptools)
+library(ggmap)
+library(doBy)
+library(mapproj)
+library(ggthemes)
+library(reshape2)
+```
+
+
+
+```{r include = FALSE}
+setwd("/cloud/project/Mini Project 2/Mini Project 2 Adriana_Elisa")
+coverage <- read_csv("hcare_cov.csv")
+spending <- read_csv("hcare_spend.csv")
+```
+
+```{r include = FALSE}
+capFirst <- function(s) {
+    paste(toupper(substring(s, 1, 1)), substring(s, 2), sep = "")
+}
+```
+
+```{r include = FALSE}
+gusa <- map_data("state")
+gusa$region <- capFirst(gusa$region)
+```
+
+
+
+
+
+```{r echo =FALSE}
+y <- spending %>%
+  select(Location, `2013__Total Health Spending`)%>%
+  group_by(Location)%>%
+  filter(Location != 'United States')%>%
+  filter(`2013__Total Health Spending` > 60500)%>%
+  #summarise(number_recipients=n()) %>%
+  arrange(desc(`2013__Total Health Spending`))
+y$Location <- factor(y$Location, levels =   y$Location[order(y$`2013__Total Health Spending`, decreasing = T)])
+y %>%
+ggplot() +
+geom_bar(aes(x=Location, y= `2013__Total Health Spending` , fill= Location), stat = 'identity')+
+theme(axis.text.x=element_text(angle=40, hjust=1, vjust=1))+ labs(x='Location')+ labs(y= 'Total spent in 2013')
+```
+
+
+
+```{r echo = FALSE}
+z <- spending %>%
+  select(Location, `2014__Total Health Spending`)%>%
+  group_by(Location)%>%
+  filter(Location != 'United States')%>%
+  filter(`2014__Total Health Spending` > 65000)%>%
+  #summarise(number_recipients=n()) %>%
+  arrange(desc(`2014__Total Health Spending`))
+z$Location <- factor(z$Location, levels =   z$Location[order(z$`2014__Total Health Spending`, decreasing = T)])
+z %>%
+ggplot(color = 'purple') +
+geom_bar(aes(x=Location, y=`2014__Total Health Spending`, fill= Location), stat = 'identity')+
+theme(axis.text.x=element_text(angle=40, hjust=1, vjust=1))+ labs(x='Location')+ labs(y= 'Total spent in 2014')
+```
+
+
+
+```{r echo=FALSE}
+joined <- left_join(y,z,'Location')
+my_data_long <- melt(joined, id.vars = c("Location"))
+ggplot(data=my_data_long,aes(x=Location, y=value, fill=variable, color=variable, alpha=variable)) +
+  geom_bar(stat="identity",position ="identity") +
+  scale_colour_manual(values=c("lightblue4","red")) +
+  scale_fill_manual(values=c("blue","white")) +
+  scale_alpha_manual(values=c(0.2, 0)) +
+theme(axis.text.x=element_text(angle=40, hjust=1, vjust=1))+ labs(x='Location')+ labs(y= 'Total spent')
+```
+
+
+
+
+
+```{r include=FALSE}
+data<- spending%>%
+  filter( Location != "United States")%>%
+  mutate(Location = fct_recode(Location, "South dakota"= "South Dakota", "South carolina"= "South Carolina", "Rhode island"= "Rhode Island", "District of columbia"= "District of Columbia", "New hampshire"= "New Hampshire", "New mexico"= "New Mexico", "New jersey"= "New Jersey", "New york"= "New York", "North carolina"= "North Carolina", "West virginia"= "West Virginia", "North dakota"= "North Dakota"))%>%
+  select(region= Location, `2014__Total Health Spending`)%>%
+  mutate(rspending = rank(`2014__Total Health Spending`))%>%
+  mutate(pcls = cut(`2014__Total Health Spending`, quantile(`2014__Total Health Spending`, seq(0, 1, len = 6)), include.lowest = TRUE))
+```
+
+
+```{r include=FALSE}
+spd_total <- left_join(gusa, data, "region")
+head(spd_total)
+```
+
+
+```{r echo=FALSE}
+txtVal <- summaryBy(long + lat + rspending ~ region, data=spd_total, FUN=mean, keep.names=T)
+ggplot(spd_total) +
+    geom_polygon(aes(long, lat, group = group, fill = rspending),
+                 color = "grey") +
+    coord_map("bonne", parameters=45) + geom_text(aes(x=long, y=lat, label=rspending), data=txtVal, col="red", cex=2.5) + ggtitle("Map of Spending Total Rank in 2014")
+```
+
+
+
+
+
+
+Creating the map
+
+```{r include=FALSE}
+cleancov<- coverage %>%
+  #filter( `2014__Other Public` != "N/A")%>%
+  filter( Location != "United States")%>%
+  mutate(Location = fct_recode(Location, "South dakota"= "South Dakota", "South carolina"= "South Carolina", "Rhode island"= "Rhode Island", "District of columbia"= "District of Columbia", "New hampshire"= "New Hampshire", "New mexico"= "New Mexico", "New jersey"= "New Jersey", "New york"= "New York", "North carolina"= "North Carolina", "West virginia"= "West Virginia", "North dakota"= "North Dakota"))%>%
+  select(region= Location, `2014__Total`)%>%
+  mutate(rcov = rank(`2014__Total`))%>%
+  mutate(Percentiles = cut(`2014__Total`, quantile(`2014__Total`, seq(0, 1, len = 6)), include.lowest = TRUE))
+#head(cleancov)
+  
+```
+
+
+```{r include=FALSE}
+cov_total <- left_join(gusa, cleancov, "region")
+head(cov_total)
+```
+
+
+
+
+
+
+```{r echo=FALSE}
+txtVal1 <- summaryBy(long + lat + rcov ~ region, data=cov_total, FUN=mean, keep.names=T)
+ggplot(cov_total) +
+    geom_polygon(aes(long, lat, group = group, fill = rcov),
+                 color = "grey") +
+    coord_map("bonne", parameters=45) + geom_text(aes(x=long, y=lat, label=rcov), data=txtVal1, col="red", cex=2.5)+ ggtitle("Map of Coverage Total Rank in 2014")
+```
+
+```{r echo=FALSE}
+ggplot(cov_total) +
+    geom_polygon(aes(long, lat, group = group, fill = Percentiles),
+                 color = "grey") +
+    coord_map("bonne", parameters=45) +
+    ggthemes::theme_map() +
+    scale_fill_brewer(palette = "Greens") + ggtitle("Map of Percentiles of Coverage Total in 2014")
+```
+
+
+
+
+
+```{r echo=FALSE}
+ggplot(spd_total) +
+    geom_polygon(aes(long, lat, group = group, fill = pcls),
+                 color = "grey") +
+    coord_map("bonne", parameters=45) +
+    ggthemes::theme_map() +
+    scale_fill_brewer(palette = "Purples") + ggtitle("Map of Percentiles of Spending Total in 2014")
+```
